@@ -4,7 +4,7 @@ use std::fmt::Error;
 
 #[derive(SerializeNumberStruct, DeserializeNumberStruct)]
 struct Swap {
-    qty_1: i32,
+    name: String,
     qty_2: usize,
     qty_3: i8,
 }
@@ -12,7 +12,7 @@ struct Swap {
 fn main() {
     println!("Hello, world!");
     let s = Swap {
-        qty_1: 1,
+        name: "Test".to_string(),
         qty_2: 100,
         qty_3: -5,
     };
@@ -21,7 +21,7 @@ fn main() {
 
     let deserialized = Swap::deserialize(&bytes).unwrap();
     println!(
-        "qty_1={}, qty_2={}, qty_3={}",
-        deserialized.qty_1, deserialized.qty_2, deserialized.qty_3
+        "name={}, qty_2={}, qty_3={}",
+        deserialized.name, deserialized.qty_2, deserialized.qty_3
     );
 }
