@@ -12,14 +12,24 @@ pub fn serialise_number_struct(input: TokenStream) -> TokenStream {
             match &data_struct.fields {
                 Fields::Named(fields) => {
                     let field_serializations = fields.named.iter().map(|field| {
+                        if let syn::Type::Path(type_path) = &field.ty {
+                            if let Some(ident) = type_path.path.get_ident() {
+                                let ty_str = ident.to_string();
+                                match ty_str.as_str() {
+                                    "i8" | "u8" | "i16" | "u16" | "i32" | "u32" | "i64" | "u64" | "isize" | "usize" => {},
+                                    _ => panic!("Unsupported field type: {}", ty_str),
+                                }
+                            } else {
+                                panic!("Complex types not supported");
+                            }
+                        } else {
+                            panic!("Non-path types not supported");
+                        }
                         let field_name = &field.ident;
                         quote! {
                             result.extend_from_slice(&self.#field_name.to_be_bytes());
                         }
                     });
-                    /*
-                        field_serializeations = [quote!(result.extend_from_slice(&self.qty_1.to_be_bytes())), quote!(result.extend_from_slice(&self.qty_2.to_be_bytes()))]
-                     */
                     quote! {
                         #(#field_serializations)*
                     }
@@ -29,12 +39,6 @@ pub fn serialise_number_struct(input: TokenStream) -> TokenStream {
         }
         _ => panic!("Only structs are supported"),
     };
-    /*
-        serialize_fields ->
-        result.extend_from_slice(&self.qty_1.to_be_bytes())
-        result.extend_from_slice(&self.qty_2.to_be_bytes())
-        result.extend_from_slice(&self.qty_3.to_be_bytes())
-     */
 
     let generated = quote! {
         impl Serialize for #name {
@@ -63,16 +67,28 @@ pub fn deserialise_number_struct(input: TokenStream) -> TokenStream {
                     
                     for field in &fields.named {
                         let field_name = &field.ident;
-                        let field_size = 4;
+                        let ty = &field.ty;
+                        let field_ty_str = if let syn::Type::Path(type_path) = ty {
+                            type_path.path.get_ident().map(|i| i.to_string()).unwrap_or_else(|| panic!("Unsupported type"))
+                        } else {
+                            panic!("Non-path types not supported")
+                        };
+                        let field_size: usize = match field_ty_str.as_str() {
+                            "i8" | "u8" => 1,
+                            "i16" | "u16" => 2,
+                            "i32" | "u32" => 4,
+                            "i64" | "u64" | "isize" | "usize" => 8,
+                            _ => panic!("Unsupported field type: {}", field_ty_str),
+                        };
                         let start_offset = offset;
                         let end_offset = offset + field_size;
                         
                         field_deserializations.push(quote! {
-                            let #field_name = {
-                                let bytes: [u8; 4] = base[#start_offset..#end_offset]
+                            let #field_name: #ty = {
+                                let bytes: [u8; #field_size] = base[#start_offset..#end_offset]
                                     .try_into()
                                     .map_err(|_| Error)?;
-                                i32::from_be_bytes(bytes)
+                                #ty::from_be_bytes(bytes)
                             };
                         });
                         

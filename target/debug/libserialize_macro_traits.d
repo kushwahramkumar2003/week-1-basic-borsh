@@ -1,0 +1,1 @@
+/mnt/Data/Language-Play-Ground/superdevs/Assignment/week1/week-1-basic-borsh/target/debug/libserialize_macro_traits.rlib: /mnt/Data/Language-Play-Ground/superdevs/Assignment/week1/week-1-basic-borsh/serialize_macro_traits/src/lib.rs
